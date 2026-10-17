@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fishbone Timeline Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Noto Sans Thai', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1300px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 { text-align: center; color: #667eea; margin-bottom: 30px; font-size: 2.3em; }
+
+    .title-row { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .title-row label { font-weight: 600; color: #444; }
+    .title-row input[type=text] {
+        flex: 1; min-width: 220px; padding: 10px; border: 2px solid #e0e0e0;
+        border-radius: 5px; font-size: 15px; font-family: inherit;
+    }
+    .title-row input[type=text]:focus { outline: none; border-color: #667eea; }
+
+    .input-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .input-table th { background: #667eea; color: white; padding: 12px; text-align: left; font-size: 16px; }
+    .input-table td { padding: 10px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+    .input-table input[type=text] {
+        width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px;
+        font-size: 14px; font-family: inherit; transition: border-color 0.3s;
+    }
+    .input-table input[type=text]:focus { outline: none; border-color: #667eea; }
+
+    .img-cell { white-space: nowrap; }
+    .img-btn {
+        display: inline-block; padding: 9px 14px; background: #eef0ff; color: #4a5bd0;
+        border: 2px dashed #667eea; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+    }
+    .img-btn:hover { background: #dfe3ff; }
+    .img-preview { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; vertical-align: middle; }
+    .img-preview img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 2px solid #667eea; }
+    .img-preview button {
+        padding: 2px 7px; font-size: 12px; background: #f44336; color: white; border-radius: 50%; line-height: 1.3;
+    }
+
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+    button {
+        padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
+        transition: all 0.3s; font-weight: 600; font-family: inherit;
+    }
+    .btn-add { background: #4CAF50; color: white; }
+    .btn-add:hover { background: #45a049; transform: translateY(-2px); }
+    .btn-remove { background: #f44336; color: white; }
+    .btn-remove:hover { background: #da190b; transform: translateY(-2px); }
+    .btn-generate { background: #667eea; color: white; }
+    .btn-generate:hover { background: #5568d3; transform: translateY(-2px); }
+    .btn-save { background: #FF9800; color: white; }
+    .btn-save:hover { background: #e68900; transform: translateY(-2px); }
+    .btn-reset { background: #9E9E9E; color: white; }
+    .btn-reset:hover { background: #757575; transform: translateY(-2px); }
+    .btn-sample { background: #00acc1; color: white; }
+    .btn-sample:hover { background: #008ba3; transform: translateY(-2px); }
+    .delete-btn { padding: 6px 12px; background: #f44336; color: white; font-size: 13px; border-radius: 4px; }
+    .delete-btn:hover { background: #da190b; }
+
+    .timeline-container { margin-top: 40px; padding: 25px; background: #f9f9f9; border-radius: 10px; display: none; }
+    .timeline-container h2 { text-align: center; color: #667eea; margin-bottom: 15px; }
+
+    .style-toggle { text-align: center; margin-bottom: 15px; }
+    .style-btn {
+        padding: 9px 16px; margin: 4px; border: 2px solid #667eea; background: white; color: #667eea;
+        border-radius: 8px; font-size: 14px;
+    }
+    .style-btn.active { background: #667eea; color: white; }
+    .style-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3); }
+
+    .options-row {
+        display: flex; gap: 25px; justify-content: center; align-items: center; flex-wrap: wrap;
+        margin-bottom: 15px; color: #444; font-size: 14px;
+    }
+    .options-row label { display: flex; align-items: center; gap: 8px; }
+
+    .canvas-wrap {
+        overflow: auto; background: #fff; border-radius: 10px; border: 1px solid #ddd;
+        max-height: 85vh; text-align: left;
+    }
+    #timelineCanvas { display: block; }
+    .hint { text-align: center; color: #888; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🐟 Fishbone Timeline Generator</h1>
+
+    <div class="title-row">
+        <label for="fishTitle">หัวข้อชาร์ต (แสดงด้านบน):</label>
+        <input type="text" id="fishTitle" value="Timeline" placeholder="ชื่อหัวข้อ / เรื่องที่ต้องการแสดง">
+    </div>
+
+    <table class="input-table">
+        <thead>
+            <tr>
+                <th style="width: 36%;">เหตุการณ์</th>
+                <th style="width: 28%;">วัน/เดือน/ปี หรือ ปี</th>
+                <th style="width: 28%;">รูปภาพ (ไม่บังคับ)</th>
+                <th style="width: 8%;"></th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="btn-group">
+        <button class="btn-add" onclick="addRow()">➕ เพิ่มแถว</button>
+        <button class="btn-remove" onclick="removeLastRow()">➖ ลบแถวสุดท้าย</button>
+        <button class="btn-sample" onclick="loadSample()">🧪 โหลดตัวอย่าง</button>
+        <button class="btn-generate" onclick="generateTimeline()">📊 สร้าง Timeline Chart</button>
+        <button class="btn-save" onclick="saveAsPNG()">💾 บันทึกเป็น PNG</button>
+        <button class="btn-reset" onclick="resetAll()">🔄 Reset</button>
+    </div>
+
+    <div class="timeline-container" id="timelineContainer">
+        <h2>Timeline Chart</h2>
+
+        <div class="style-toggle" id="styleToggle">
+            <button class="style-btn active" data-style="classic">🐟 ก้างปลาคลาสสิก (เฉียง)</button>
+            <button class="style-btn" data-style="right">📐 ก้างปลาตั้งฉาก</button>
+            <button class="style-btn" data-style="curve">🌊 ก้างปลาโค้ง</button>
+            <button class="style-btn" data-style="oneside">⬆️ ก้างปลาด้านเดียว</button>
+            <button class="style-btn" data-style="vertical">↕️ ก้างปลาแนวตั้ง</button>
+        </div>
+
+        <div class="options-row">
+            <label>ขนาดการ์ด
+                <input type="range" id="cardWidth" min="180" max="320" step="10" value="220">
+                <span id="cardWidthVal">220</span>px
+            </label>
+            <label><input type="checkbox" id="fitWidth"> ย่อให้พอดีความกว้างหน้าจอ</label>
+        </div>
+
+        <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="timelineCanvas"></canvas>
+        </div>
+        <div class="hint">ความกว้างของ Canvas จะขยายตามจำนวนเหตุการณ์ (เลื่อนซ้าย-ขวาเพื่อดูทั้งหมด) และไฟล์ PNG จะบันทึกครบทุกเหตุการณ์</div>
+    </div>
+</div>
+
+<script>
+const FONT = "'Noto Sans Thai','Sarabun',Tahoma,'Segoe UI',sans-serif";
+const PALETTE = ['#e74c3c', '#3498db', '#27ae60', '#f39c12', '#9b59b6', '#16a085', '#e67e22', '#d63384', '#2c3e50', '#00acc1'];
+const SPINE = '#3f4fb8';
+const PAD = 12, LH = 21, DATE_H = 26;
+
+let currentStyle = 'classic';
+let events = [];
+let cardW = 220;
+const mctx = document.createElement('canvas').getContext('2d');
+
+/* ---------- ตารางข้อมูล ---------- */
+function createRow(eventText = '', dateText = '') {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" placeholder="ระบุเหตุการณ์" class="event-input"></td>
+        <td><input type="text" placeholder="เช่น 2567, 15 พฤษภาคม 2567, 15/05/2024" class="date-input"></td>
+        <td class="img-cell">
+            <label class="img-btn">📷 แนบรูป<input type="file" accept="image/*" class="img-input" hidden></label>
+            <span class="img-preview"></span>
+        </td>
+        <td><button class="delete-btn" onclick="deleteRow(this)">ลบ</button></td>`;
+    tr.querySelector('.event-input').value = eventText;
+    tr.querySelector('.date-input').value = dateText;
+    tr.querySelector('.img-input').addEventListener('change', e => handleImage(e, tr));
+    return tr;
+}
+
+function addRow() { document.getElementById('tableBody').appendChild(createRow()); }
+
+function removeLastRow() {
+    const tb = document.getElementById('tableBody');
+    if (tb.rows.length > 1) tb.removeChild(tb.lastElementChild);
+    else alert('ต้องมีอย่างน้อย 1 แถว');
+}
+
+function deleteRow(btn) {
+    const tb = document.getElementById('tableBody');
+    if (tb.rows.length > 1) btn.closest('tr').remove();
+    else alert('ต้องมีอย่างน้อย 1 แถว');
+}
+
+function handleImage(e, tr) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            // ย่อรูปไม่ให้ใหญ่เกินไป
+            const max = 900;
+            const s = Math.min(1, max / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * s);
+            c.height = Math.round(img.height * s);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            tr._img = c.toDataURL('image/jpeg', 0.88);
+            const prev = tr.querySelector('.img-preview');
+            prev.innerHTML = `<img src="${tr._img}" alt=""><button title="ลบรูป">✕</button>`;
+            prev.querySelector('button').onclick = () => {
+                tr._img = null;
+                prev.innerHTML = '';
+                tr.querySelector('.img-input').value = '';
+            };
+        };
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function loadSample() {
+    const tb = document.getElementById('tableBody');
+    tb.innerHTML = '';
+    [
+        ['เริ่มโครงการ', '2563'],
+        ['ประชุมวางแผนงาน', '15 มีนาคม 2564'],
+        ['เปิดตัวผลิตภัณฑ์ต้นแบบ', '10/09/2564'],
+        ['ขยายทีมงาน', '2565'],
+        ['เปิดตัวอย่างเป็นทางการ', 'พฤษภาคม 2566'],
+        ['ได้รับรางวัลระดับประเทศ', '2567'],
+        ['ขยายสาขาต่างประเทศ', '2568']
+    ].forEach(r => tb.appendChild(createRow(r[0], r[1])));
+}
+
+/* ---------- แปลงวันที่ ---------- */
+function parseDate(dateStr) {
+    if (!dateStr) return null;
+    dateStr = dateStr.trim();
+
+    const thaiMonths = {
+        'มกราคม': 1, 'กุมภาพันธ์': 2, 'มีนาคม': 3, 'เมษายน': 4,
+        'พฤษภาคม': 5, 'มิถุนายน': 6, 'กรกฎาคม': 7, 'สิงหาคม': 8,
+        'กันยายน': 9, 'ตุลาคม': 10, 'พฤศจิกายน': 11, 'ธันวาคม': 12,
+        'ม.ค.': 1, 'ก.พ.': 2, 'มี.ค.': 3, 'เม.ย.': 4,
+        'พ.ค.': 5, 'มิ.ย.': 6, 'ก.ค.': 7, 'ส.ค.': 8,
+        'ก.ย.': 9, 'ต.ค.': 10, 'พ.ย.': 11, 'ธ.ค.': 12
+    };
+
+    function convertToAD(year) { return year > 2400 ? year - 543 : year; }
+
+    if (/^\d{4}$/.test(dateStr)) {
+        return new Date(convertToAD(parseInt(dateStr)), 0, 1);
+    }
+
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+        const p = dateStr.split('/');
+        return new Date(convertToAD(parseInt(p[2])), parseInt(p[1]) - 1, parseInt(p[0]));
+    }
+
+    const m1 = dateStr.match(/^(\d{1,2})\s+([ก-๙a-zA-Z.]+)\s+(\d{4})$/);
+    if (m1) {
+        const month = thaiMonths[m1[2]];
+        if (month) return new Date(convertToAD(parseInt(m1[3])), month - 1, parseInt(m1[1]));
+    }
+
+    const m2 = dateStr.match(/^([ก-๙a-zA-Z.]+)\s+(\d{4})$/);
+    if (m2) {
+        const month = thaiMonths[m2[1]];
+        if (month) return new Date(convertToAD(parseInt(m2[2])), month - 1, 1);
+    }
+
+    if (/^\d{1,2}\/\d{4}$/.test(dateStr)) {
+        const p = dateStr.split('/');
+        return new Date(convertToAD(parseInt(p[1])), parseInt(p[0]) - 1, 1);
+    }
+
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+/* ---------- ตัวช่วยวาด ---------- */
+function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+function wrapText(ctx, text, maxW) {
+    let segs;
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        segs = Array.from(new Intl.Segmenter('th', { granularity: 'word' }).segment(text), s => s.segment);
+    } else {
+        segs = Array.from(text);
+    }
+    segs = segs.flatMap(s => ctx.measureText(s).width > maxW ? Array.from(s) : [s]);
+    const lines = [];
+    let cur = '';
+    for (const s of segs) {
+        if (s === '\n') { lines.push(cur); cur = ''; continue; }
+        const t = cur + s;
+        if (ctx.measureText(t).width > maxW && cur) {
+            lines.push(cur.trimEnd());
+            cur = s.trimStart();
+        } else {
+            cur = t;
+        }
+    }
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [''];
+}
+
+function drawCover(ctx, img, x, y, w, h, r) {
+    ctx.save();
+    rr(ctx, x, y, w, h, r);
+    ctx.clip();
+    const s = Math.max(w / img.width, h / img.height);
+    const dw = img.width * s, dh = img.height * s;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    ctx.restore();
+}
+
+function measureCards() {
+    mctx.font = `15px ${FONT}`;
+    events.forEach((ev, i) => {
+        ev.lines = wrapText(mctx, ev.event, cardW - PAD * 2);
+        ev.imgH = ev.imgEl ? Math.round((cardW - PAD * 2) * 0.62) : 0;
+        ev.h = 6 + PAD + DATE_H + (ev.imgH ? ev.imgH + 8 : 0) + ev.lines.length * LH + PAD;
+        ev.color = PALETTE[i % PALETTE.length];
+    });
+}
+
+function drawCard(ctx, x, y, ev) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 3;
+    rr(ctx, x, y, cardW, ev.h, 10);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    rr(ctx, x, y, cardW, ev.h, 10);
+    ctx.clip();
+    ctx.fillStyle = ev.color;
+    ctx.fillRect(x, y, cardW, 6);
+    ctx.restore();
+
+    rr(ctx, x, y, cardW, ev.h, 10);
+    ctx.strokeStyle = ev.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    let cy = y + 6 + PAD;
+
+    // วันที่ (ย่อฟอนต์ถ้ายาว)
+    let fs = 16;
+    ctx.font = `bold ${fs}px ${FONT}`;
+    while (ctx.measureText(ev.date).width > cardW - PAD * 2 && fs > 10) {
+        fs--;
+        ctx.font = `bold ${fs}px ${FONT}`;
+    }
+    ctx.fillStyle = ev.color;
+    ctx.fillText(ev.date, x + PAD, cy);
+    cy += DATE_H;
+
+    if (ev.imgEl) {
+        drawCover(ctx, ev.imgEl, x + PAD, cy, cardW - PAD * 2, ev.imgH, 8);
+        cy += ev.imgH + 8;
+    }
+
+    ctx.font = `15px ${FONT}`;
+    ctx.fillStyle = '#333';
+    ev.lines.forEach(l => { ctx.fillText(l, x + PAD, cy); cy += LH; });
+}
+
+function drawBadge(ctx, x, y, n, color) {
+    ctx.beginPath();
+    ctx.arc(x, y, 13, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold 12px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(n), x, y + 1);
+}
+
+function drawBone(ctx, ev, A, B, kind) {
+    ctx.strokeStyle = ev.color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(A.x, A.y);
+    if (kind === 'curve') ctx.quadraticCurveTo(A.x, B.y, B.x, B.y);
+    else ctx.lineTo(B.x, B.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(A.x, A.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = ev.color;
+    ctx.fill();
+}
+
+/* ---------- หัวเรื่อง / จุดเริ่มต้น / ลูกศรปลายทาง ---------- */
+function getTitle() {
+    return (document.getElementById('fishTitle').value || '').trim();
+}
+
+function drawTitle(ctx, title, x, y, maxW) {
+    let fs = 26;
+    ctx.font = `bold ${fs}px ${FONT}`;
+    while (ctx.measureText(title).width > maxW && fs > 14) {
+        fs--;
+        ctx.font = `bold ${fs}px ${FONT}`;
+    }
+    ctx.fillStyle = SPINE;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, x, y);
+}
+
+function drawStart(ctx, x, y, labelPos) {
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = SPINE;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, 9, 0, Math.PI * 2);
+    ctx.fillStyle = SPINE;
+    ctx.fill();
+
+    ctx.font = `bold 13px ${FONT}`;
+    ctx.fillStyle = SPINE;
+    if (labelPos === 'right') {
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('เริ่มต้น', x + 30, y);
+    } else {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('เริ่มต้น', x, y + 28);
+    }
+}
+
+function drawArrowH(ctx, tipX, y) {
+    ctx.beginPath();
+    ctx.moveTo(tipX, y);
+    ctx.lineTo(tipX - 38, y - 26);
+    ctx.lineTo(tipX - 38, y + 26);
+    ctx.closePath();
+    ctx.fillStyle = SPINE;
+    ctx.fill();
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = SPINE;
+    ctx.stroke();
+}
+
+function drawArrowV(ctx, x, tipY) {
+    ctx.beginPath();
+    ctx.moveTo(x, tipY);
+    ctx.lineTo(x - 26, tipY - 38);
+    ctx.lineTo(x + 26, tipY - 38);
+    ctx.closePath();
+    ctx.fillStyle = SPINE;
+    ctx.fill();
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = SPINE;
+    ctx.stroke();
+}
+
+/* ---------- Layout แนวนอน ---------- */
+function layoutHorizontal(style) {
+    const M = 30, START_X = 44, FIRST = 70, ARROW_W = 40, MIN_W = 900;
+    const title = getTitle();
+    const titleH = title ? 54 : 0;
+    const alt = style !== 'oneside';
+    const step = alt ? (cardW + 40) / 2 : cardW + 36;
+    const bone = style === 'right' ? 80 : 100;
+    const slant = style === 'right' ? 0 : (style === 'curve' ? 90 : 70);
+    const n = events.length;
+    const firstCx = FIRST + cardW / 2 + 20;
+
+    events.forEach((ev, i) => {
+        ev.cx = firstCx + i * step;
+        ev.side = alt ? (i % 2 === 0 ? -1 : 1) : -1;
+    });
+
+    const last = events[n - 1];
+    const spineEnd = Math.max(last.cx + slant + 60, last.cx + cardW / 2 + 20);
+    const tipX = Math.max(spineEnd + ARROW_W, MIN_W - M);
+    const W = tipX + M;
+
+    let topH = 0, botH = 0;
+    events.forEach(ev => { if (ev.side < 0) topH = Math.max(topH, ev.h); else botH = Math.max(botH, ev.h); });
+    const topExt = Math.max(topH ? topH + bone : 0, 70);
+    const botExt = Math.max(botH ? botH + bone : 0, 70);
+    const spineY = M + titleH + topExt;
+    const H = spineY + botExt + M;
+
+    return {
+        W, H,
+        draw(ctx) {
+            ctx.fillStyle = '#f7f8fc';
+            ctx.fillRect(0, 0, W, H);
+
+            if (title) drawTitle(ctx, title, M, M, W - M * 2);
+
+            // เส้นหลัก จากจุดเริ่มต้นไปยังลูกศร
+            ctx.strokeStyle = SPINE;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'butt';
+            ctx.beginPath();
+            ctx.moveTo(START_X, spineY);
+            ctx.lineTo(tipX - 30, spineY);
+            ctx.stroke();
+            drawArrowH(ctx, tipX, spineY);
+            drawStart(ctx, START_X, spineY, 'below');
+
+            events.forEach((ev, i) => {
+                const dir = ev.side;
+                const A = { x: ev.cx, y: spineY + dir * bone };
+                const B = { x: ev.cx + slant, y: spineY };
+                drawBone(ctx, ev, A, B, style);
+                const y = dir < 0 ? spineY - bone - ev.h : spineY + bone;
+                drawCard(ctx, ev.cx - cardW / 2, y, ev);
+                drawBadge(ctx, B.x, B.y, i + 1, ev.color);
+            });
+        }
+    };
+}
+
+/* ---------- Layout แนวตั้ง ---------- */
+function layoutVertical() {
+    const M = 30, reach = 80, drop = 45;
+    const title = getTitle();
+    const titleH = title ? 54 : 0;
+    const maxH = Math.max(...events.map(e => e.h));
+    const step = (maxH + 30) / 2;
+    const W = Math.max(900, 2 * (cardW + reach) + 120);
+    const sx = W / 2;
+    const startCy = M + titleH + 24;
+    const startY = startCy + 40;
+
+    events.forEach((ev, i) => {
+        ev.side = i % 2 === 0 ? -1 : 1;
+        ev.cy = startY + maxH / 2 + i * step;
+    });
+    const last = events[events.length - 1];
+    const spineEnd = last.cy + drop + 50;
+    const tipY = spineEnd + 40;
+    const H = tipY + M;
+
+    return {
+        W, H,
+        draw(ctx) {
+            ctx.fillStyle = '#f7f8fc';
+            ctx.fillRect(0, 0, W, H);
+
+            if (title) drawTitle(ctx, title, M, M, W - M * 2);
+
+            ctx.strokeStyle = SPINE;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'butt';
+            ctx.beginPath();
+            ctx.moveTo(sx, startCy);
+            ctx.lineTo(sx, tipY - 30);
+            ctx.stroke();
+            drawArrowV(ctx, sx, tipY);
+            drawStart(ctx, sx, startCy, 'right');
+
+            events.forEach((ev, i) => {
+                const A = { x: sx + ev.side * reach, y: ev.cy };
+                const B = { x: sx, y: ev.cy + drop };
+                drawBone(ctx, ev, A, B, 'classic');
+                const x = ev.side < 0 ? sx - reach - cardW : sx + reach;
+                drawCard(ctx, x, ev.cy - ev.h / 2, ev);
+                drawBadge(ctx, B.x, B.y, i + 1, ev.color);
+            });
+        }
+    };
+}
+
+/* ---------- Render ---------- */
+function render() {
+    if (!events.length) return;
+    measureCards();
+    const L = currentStyle === 'vertical' ? layoutVertical() : layoutHorizontal(currentStyle);
+
+    const canvas = document.getElementById('timelineCanvas');
+    const ctx = canvas.getContext('2d');
+    let dpr = 2;
+    dpr = Math.min(dpr, 16000 / Math.max(L.W, L.H), Math.sqrt(2.5e8 / (L.W * L.H)));
+
+    canvas.width = Math.round(L.W * dpr);
+    canvas.height = Math.round(L.H * dpr);
+    canvas.dataset.w = L.W;
+    canvas.dataset.h = L.H;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    L.draw(ctx);
+    applyFit();
+}
+
+function applyFit() {
+    const canvas = document.getElementById('timelineCanvas');
+    const fit = document.getElementById('fitWidth').checked;
+    if (fit) {
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+    } else {
+        canvas.style.width = canvas.dataset.w + 'px';
+        canvas.style.height = canvas.dataset.h + 'px';
+    }
+}
+
+function loadImage(src) {
+    return new Promise(res => {
+        if (!src) return res(null);
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => res(null);
+        img.src = src;
+    });
+}
+
+async function generateTimeline() {
+    const rows = Array.from(document.getElementById('tableBody').rows);
+    const list = [];
+    const skipped = [];
+
+    rows.forEach((tr, idx) => {
+        const event = tr.querySelector('.event-input').value.trim();
+        const date = tr.querySelector('.date-input').value.trim();
+        if (!event && !date) return;
+        if (!event || !date) { skipped.push(idx + 1); return; }
+        const parsed = parseDate(date);
+        if (!parsed) { skipped.push(idx + 1); return; }
+        list.push({ event, date, sortDate: parsed, img: tr._img || null });
+    });
+
+    if (!list.length) {
+        alert('กรุณาใส่ข้อมูลเหตุการณ์และวันที่อย่างน้อย 1 รายการ');
+        return;
+    }
+    if (skipped.length) {
+        alert('ข้ามแถวที่ข้อมูลไม่ครบหรืออ่านวันที่ไม่ได้: แถว ' + skipped.join(', '));
+    }
+
+    list.sort((a, b) => a.sortDate - b.sortDate);
+    await Promise.all(list.map(async ev => { ev.imgEl = await loadImage(ev.img); }));
+
+    try {
+        await Promise.race([
+            Promise.all([document.fonts.load(`15px 'Noto Sans Thai'`), document.fonts.load(`bold 15px 'Noto Sans Thai'`)]),
+            new Promise(r => setTimeout(r, 1500))
+        ]);
+    } catch (e) { /* ใช้ฟอนต์สำรอง */ }
+
+    events = list;
+    const container = document.getElementById('timelineContainer');
+    container.style.display = 'block';
+    render();
+    setTimeout(() => container.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function saveAsPNG() {
+    if (!events.length) {
+        alert('กรุณาสร้าง Timeline Chart ก่อนบันทึก');
+        return;
+    }
+    const canvas = document.getElementById('timelineCanvas');
+    const now = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const filename = `fishbone-timeline-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.png`;
+    canvas.toBlob(blob => {
+        if (!blob) { alert('เกิดข้อผิดพลาดในการสร้างไฟล์ PNG กรุณาลองใหม่อีกครั้ง'); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = filename;
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 'image/png');
+}
+
+function resetAll() {
+    const tb = document.getElementById('tableBody');
+    tb.innerHTML = '';
+    for (let i = 0; i < 3; i++) tb.appendChild(createRow());
+    document.getElementById('fishTitle').value = 'Timeline';
+    events = [];
+    currentStyle = 'classic';
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'classic'));
+    document.getElementById('timelineContainer').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ---------- เหตุการณ์ UI ---------- */
+document.getElementById('styleToggle').addEventListener('click', e => {
+    const btn = e.target.closest('.style-btn');
+    if (!btn) return;
+    currentStyle = btn.dataset.style;
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+});
+
+document.getElementById('cardWidth').addEventListener('input', e => {
+    cardW = parseInt(e.target.value);
+    document.getElementById('cardWidthVal').textContent = cardW;
+    render();
+});
+
+document.getElementById('fitWidth').addEventListener('change', applyFit);
+document.getElementById('fishTitle').addEventListener('input', render);
+
+for (let i = 0; i < 3; i++) document.getElementById('tableBody').appendChild(createRow());
+</script>
+</body>
+</html>
